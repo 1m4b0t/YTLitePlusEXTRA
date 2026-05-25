@@ -31,6 +31,18 @@ on:
         default: true
         required: false
         type: boolean
+
+      ytvid:
+        description: "Integrate YTVideoErrorAlert"
+        default: true
+        required: false
+        type: boolean
+
+      # volboost:
+      #   description: "Integrate VolumeBoostYT (Require iOS 16+)"
+      #   default: true
+      #   required: false
+      #   type: boolean
      
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -47,7 +59,7 @@ jobs:
       - name: Hide Sensitive Inputs
         uses: levibostian/action-hide-sensitive-inputs@v1
         with:
-          exclude_inputs: bundle_id,display_name,tweak_version,demc
+          exclude_inputs: bundle_id,display_name,demc,ytvid
           
       - name: Download and Validate IPA
         run: |
@@ -158,7 +170,7 @@ jobs:
         run: git clone --quiet --depth=1 https://github.com/PoomSmart/YouMute.git
 
       - name: Clone YouLoop
-        run: git clone --quiet --depth=1 https://github.com/Tonwalter888/YouLoop.git
+        run: git clone --quiet --depth=1 https://github.com/bhackel/YouLoop.git
 
       - name: Clone Alderis
         run: git clone --quiet --depth=1 https://github.com/hbang/Alderis.git
@@ -167,7 +179,7 @@ jobs:
         run: git clone --quiet --depth=1 https://github.com/PoomSmart/YouSlider.git
 
       - name: Clone YouChooseQuality
-        run: git clone --quiet --depth=1 https://github.com/PoomSmart/YouChooseQuality.git
+        run: git clone --quiet https://github.com/PoomSmart/YouChooseQuality.git
 
       - name: Clone YTSilentVote
         run: git clone --quiet --depth=1 https://github.com/PoomSmart/YTSilentVote.git
@@ -186,6 +198,17 @@ jobs:
 
       - name: Clone YTFlags
         run: git clone --quiet --depth=1 https://github.com/Tonwalter888/YTFlags.git
+
+      - name: Clone IAmYouTube
+        run: git clone --quiet --depth=1 https://github.com/PoomSmart/IAmYouTube.git
+
+      - name: Clone YTVideoErrorAlert
+        if: ${{ inputs.ytvid }}
+        run: git clone --quiet --depth=1 https://github.com/PoomSmart/YTVideoErrorAlert.git
+
+      # - name: Clone VolumeBoostYT
+      #   if: ${{ inputs.volboost }}
+      #   run: git clone --quiet --depth=1 https://github.com/VasirakCalgux/VolumeBoostYT.git
         
       - name: Build YouPiP
         run: |
@@ -269,6 +292,7 @@ jobs:
       - name: Build YouChooseQuality
         run: |
           cd YouChooseQuality
+          git checkout 1585a3691b2ef0b59d42c40c31639fd8b79e2cd4
           make clean package DEBUG=0 FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=rootless
           mv packages/*.deb ${{ github.workspace }}/youchoose.deb
 
@@ -301,12 +325,32 @@ jobs:
           cd YTweaks
           make clean package DEBUG=0 FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=rootless
           mv packages/*.deb ${{ github.workspace }}/ytweaks.deb
-          
+
       - name: Build YTFlags
         run: |
           cd YTFlags
           make clean package DEBUG=0 FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=rootless
           mv packages/*.deb ${{ github.workspace }}/ytflags.deb
+
+      - name: Build IAmYouTube
+        run: |
+          cd IAmYouTube
+          make clean package DEBUG=0 FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=rootless
+          mv packages/*.deb ${{ github.workspace }}/imyt.deb
+
+      - name: Build YTVideoErrorAlert
+        if: ${{ inputs.ytvid }}
+        run: |
+          cd YTVideoErrorAlert
+          make clean package DEBUG=0 FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=rootless
+          mv packages/*.deb ${{ github.workspace }}/ytvideoerror.deb
+
+      # - name: Build VolumeBoostYT
+      #   if: ${{ inputs.volboost }}
+      #   run: |
+      #     cd VolumeBoostYT
+      #     make clean package DEBUG=0 FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=rootless ARCHS=arm64
+      #     mv packages/*.deb ${{ github.workspace }}/volboostyt.deb
   
       - name: Inject Tweaks Into IPA
         run: |
@@ -319,7 +363,7 @@ jobs:
           cyan -i youtube.ipa -o YTLitePlusEXTRA_${{ env.YT_VERSION }}_v${{ env.YTLITE_VERSION }}.ipa -uwef $tweaks -n "${{ inputs.display_name }}" -b ${{ inputs.bundle_id }}
 
       - name: Create a Draft Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ytliteplusextra-pre-release-ipa${{ github.run_number }}
           name: YTLitePlusEXTRA_${{ env.YT_VERSION }}_v${{ env.YTLITE_VERSION }} (${{ github.run_number }}) 
